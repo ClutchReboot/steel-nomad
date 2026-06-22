@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import {
     initRideDB,
@@ -7,6 +8,7 @@ import {
     endRide,
     getRides,
     getActiveRide,
+    getRidePracticeItems,
     updateRideRoute,
     RideRecord,
 } from "../../../services/rideStorage";
@@ -20,20 +22,25 @@ type GPSPoint = {
 };
 
 export default function RidesScreen() {
-    const [rides, setRides] = useState<RideRecord[]>([]);
-    const [activeRide, setActiveRide] = useState<RideRecord | null>(null);
+    const [rides, setRides] = useState<RideRecord[]>(() => getRides());
+    const [activeRide, setActiveRide] = useState<RideRecord | null>(() => getActiveRide());
     const [route, setRoute] = useState<GPSPoint[]>([]);
+
+    const refresh = useCallback(() => {
+        setRides(getRides());
+        setActiveRide(getActiveRide());
+    }, []);
 
     // Initialize DB once
     useEffect(() => {
         initRideDB();
-        refresh();
     }, []);
 
-    function refresh() {
-        setRides(getRides());
-        setActiveRide(getActiveRide());
-    }
+    useFocusEffect(
+        useCallback(() => {
+            refresh();
+        }, [refresh])
+    );
 
     /**
      * GPS tracking (only runs when activeRide exists)
@@ -52,6 +59,7 @@ export default function RidesScreen() {
             endTime: null,
             durationMs: null,
             route: "[]",
+            practiceItems: "[]",
         };
 
         startRide(ride);
@@ -86,6 +94,10 @@ export default function RidesScreen() {
         return `${minutes} min`;
     }
 
+    const activeRidePractices = activeRide
+        ? getRidePracticeItems(activeRide.practiceItems)
+        : [];
+
     return (
         <View style={styles.container}>
             <Text style={styles.header}>🏍 Rides</Text>
@@ -118,6 +130,12 @@ export default function RidesScreen() {
                 </Text>
             )}
 
+            {activeRide && (
+                <Text style={styles.debug}>
+                    🎯 Practice items: {activeRidePractices.length}
+                </Text>
+            )}
+
             {/* History */}
             <FlatList
                 data={rides}
@@ -142,6 +160,19 @@ export default function RidesScreen() {
                             📡 Route points:{" "}
                             {item.route ? JSON.parse(item.route).length : 0}
                         </Text>
+
+                        <Text style={styles.routeInfo}>
+                            🎯 Practice items: {" "}
+                            {getRidePracticeItems(item.practiceItems).length}
+                        </Text>
+
+                        {getRidePracticeItems(item.practiceItems).length > 0 && (
+                            <Text style={styles.practiceList}>
+                                {getRidePracticeItems(item.practiceItems)
+                                    .map((practice) => practice.title)
+                                    .join(" • ")}
+                            </Text>
+                        )}
                     </View>
                 )}
             />
@@ -209,5 +240,11 @@ const styles = StyleSheet.create({
     routeInfo: {
         marginTop: 4,
         color: "#555",
+    },
+
+    practiceList: {
+        marginTop: 6,
+        color: "#111",
+        fontWeight: "500",
     },
 });
