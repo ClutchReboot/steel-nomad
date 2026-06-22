@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Expo: Start",
+            "type": "pwa-node",
+            "request": "launch",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": [
+                "expo",
+                "start"
+            ],
+            "console": "integratedTerminal",
+            "preLaunchTask": "eslint"
+        }
+    ]
+}
